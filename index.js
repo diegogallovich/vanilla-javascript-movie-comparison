@@ -72,15 +72,17 @@ const createMovieSummaryComponent = (movieData) => {
         </div>
       </div>
     </article>
-    <article class="notification is-primary">
+    <article data-value=${
+      movieData.vote_average
+    } class="notification is-primary">
       <p class="title">${movieData.vote_average}</p>
       <p>Rating</p>
     </article>
-    <article class="notification is-primary">
+    <article data-value=${movieData.vote_count} class="notification is-primary">
       <p class="title">${movieData.vote_count}</p>
       <p>Votes</p>
     </article>
-    <article class="notification is-primary">
+    <article data-value=${movieData.revenue} class="notification is-primary">
       <p class="title">${movieData.revenue.toLocaleString('en-US', {
         style: 'currency',
         currency: 'USD',
@@ -90,12 +92,22 @@ const createMovieSummaryComponent = (movieData) => {
   `;
 };
 
-const onMovieSelect = async (movie, summaryElement) => {
+const onMovieSelect = async (movie, summaryElement, side) => {
   try {
     document.querySelector('.tutorial').classList.add('is-hidden');
     const movieData = await getMovieById(movie.id);
     const movieComponent = createMovieSummaryComponent(movieData);
     summaryElement.innerHTML = movieComponent;
+
+    if (side === 'left') {
+      leftMovie = movieData;
+    } else {
+      rightMovie = movieData;
+    }
+
+    if (leftMovie && rightMovie) {
+      runComparison();
+    }
   } catch (error) {
     console.log(error);
   }
@@ -109,6 +121,37 @@ const renderMovieOption = (movie) => {
     `;
 };
 
+const runComparison = () => {
+  console.log('running comparison');
+  const leftSideStats = document.querySelectorAll(
+    '#left-summary .notification'
+  );
+  const rightSideStats = document.querySelectorAll(
+    '#right-summary .notification'
+  );
+
+  leftSideStats.forEach((leftStat, index) => {
+    const rightStat = rightSideStats[index];
+
+    const leftSideValue = parseFloat(leftStat.dataset.value);
+    const rightSideValue = parseFloat(rightStat.dataset.value);
+
+    if (rightSideValue > leftSideValue) {
+      leftStat.classList.remove('is-primary');
+      leftStat.classList.add('is-warning');
+
+      rightStat.classList.remove('is-warning');
+      rightStat.classList.add('is-primary');
+    } else {
+      rightStat.classList.remove('is-primary');
+      rightStat.classList.add('is-warning');
+
+      leftStat.classList.remove('is-warning');
+      leftStat.classList.add('is-primary');
+    }
+  });
+};
+
 const autocompleteConfig = {
   getOptions: getMoviesByQuery,
   renderOption: renderMovieOption,
@@ -119,13 +162,13 @@ const autocompleteConfig = {
 createAutocompleteComponent({
   root: document.querySelector('#left-autocomplete'),
   onOptionSelect: (movie) =>
-    onMovieSelect(movie, document.querySelector('#left-summary')),
+    onMovieSelect(movie, document.querySelector('#left-summary'), 'left'),
   ...autocompleteConfig,
 });
 
 createAutocompleteComponent({
   root: document.querySelector('#right-autocomplete'),
   onOptionSelect: (movie) =>
-    onMovieSelect(movie, document.querySelector('#right-summary')),
+    onMovieSelect(movie, document.querySelector('#right-summary'), 'right'),
   ...autocompleteConfig,
 });
